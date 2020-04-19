@@ -1,4 +1,4 @@
-# rss_feed
+# Flutter RSS Feed
 
 A new Flutter project.
 
