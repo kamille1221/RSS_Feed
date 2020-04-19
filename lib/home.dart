@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:rss_feed/content.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webfeed/webfeed.dart';
 import 'package:http/http.dart' as http;
 
@@ -15,6 +16,7 @@ class RSSReader extends StatefulWidget {
 }
 
 class RSSReaderState extends State<RSSReader> {
+  SharedPreferences _sharedPreferences;
   String _feedUrl = 'http://myhome.chosun.com/rss/www_section_rss.xml';
   RssFeed _feed;
   String _title;
@@ -61,6 +63,15 @@ class RSSReaderState extends State<RSSReader> {
   }
 
   Future<RssFeed> loadFeed() async {
+    _sharedPreferences = await SharedPreferences.getInstance();
+    _feedUrl = _sharedPreferences.getString('feedUrl');
+    if(_feedUrl == null || _feedUrl.isEmpty) {
+      _feedUrl = 'http://myhome.chosun.com/rss/www_section_rss.xml';
+    }
+    _fontSize = _sharedPreferences.getInt('fontSize');
+    if(_fontSize == null || _fontSize == 0) {
+      _fontSize = 24;
+    }
     try {
       final client = http.Client();
       final response = await client.get(_feedUrl);
@@ -118,6 +129,7 @@ class RSSReaderState extends State<RSSReader> {
             onSelected: (value) => {
               _feedUrl = value,
               load(),
+              _saveFeedUrl(_feedUrl),
             },
           ),
           PopupMenuButton(
@@ -149,6 +161,7 @@ class RSSReaderState extends State<RSSReader> {
             onSelected: (value) => {
               _fontSize = value,
               updateFeed(_feed),
+              _saveFontSize(_fontSize),
             },
           ),
         ],
@@ -207,5 +220,13 @@ class RSSReaderState extends State<RSSReader> {
         ),
       ],
     );
+  }
+
+  _saveFeedUrl(String feedUrl) async {
+    await _sharedPreferences.setString('feedUrl', feedUrl);
+  }
+
+  _saveFontSize(int fontSize) async {
+    await _sharedPreferences.setInt('fontSize', fontSize);
   }
 }
