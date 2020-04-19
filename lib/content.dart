@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webfeed/domain/rss_item.dart';
 
 class Content extends StatefulWidget {
@@ -12,10 +13,20 @@ class Content extends StatefulWidget {
 }
 
 class _ContentState extends State<Content> {
+  SharedPreferences _sharedPreferences;
   int _fontSize = 24;
+
+  loadSharedPreferences() async {
+    _sharedPreferences = await SharedPreferences.getInstance();
+    _fontSize = _sharedPreferences.getInt('fontSize');
+    if (_fontSize == null || _fontSize == 0) {
+      _fontSize = 24;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    loadSharedPreferences();
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.item.title),
@@ -48,6 +59,7 @@ class _ContentState extends State<Content> {
             initialValue: _fontSize,
             onSelected: (value) => {
               _fontSize = value,
+              _saveFontSize(_fontSize),
               setState(
                 () {},
               ),
@@ -71,5 +83,9 @@ class _ContentState extends State<Content> {
       ),
       resizeToAvoidBottomPadding: false,
     );
+  }
+
+  _saveFontSize(int fontSize) async {
+    await _sharedPreferences.setInt('fontSize', fontSize);
   }
 }

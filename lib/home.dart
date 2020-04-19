@@ -2,14 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:rss_feed/content.dart';
+import 'package:rss_feed/rss_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webfeed/webfeed.dart';
 import 'package:http/http.dart' as http;
 
 class RSSReader extends StatefulWidget {
   RSSReader() : super();
-
-  final String title = 'flutter RSS feed';
 
   @override
   RSSReaderState createState() => RSSReaderState();
@@ -21,11 +20,11 @@ class RSSReaderState extends State<RSSReader> {
   RssFeed _feed;
   String _title;
   int _fontSize = 24;
+  bool retry = false;
   ScrollController _controller = ScrollController();
 
-  static const String loadingMessage = 'Loading Feed...';
-  static const String feedLoadErrorMessage = 'Error Loading Feed';
-  static const String feedOpenErrorMessage = 'Error Opening Feed';
+  String _loadingMessage = 'Loading Feed...';
+  String _feedLoadErrorMessage = 'Error Loading Feed';
 
   GlobalKey<RefreshIndicatorState> _refreshKey;
 
@@ -51,25 +50,29 @@ class RSSReaderState extends State<RSSReader> {
   }
 
   load() async {
-    updateTitle(loadingMessage);
+    updateTitle(_loadingMessage);
     loadFeed().then((result) {
       if (null == result || result.toString().isEmpty) {
-        updateTitle(feedLoadErrorMessage);
+        if (!retry) {
+          retry = true;
+        }
+        load();
+        updateTitle(_feedLoadErrorMessage);
         return;
       }
+      retry = false;
       updateFeed(result);
-      updateTitle("Flutter RSS feed");
     });
   }
 
   Future<RssFeed> loadFeed() async {
     _sharedPreferences = await SharedPreferences.getInstance();
     _feedUrl = _sharedPreferences.getString('feedUrl');
-    if(_feedUrl == null || _feedUrl.isEmpty) {
+    if (_feedUrl == null || _feedUrl.isEmpty) {
       _feedUrl = 'http://myhome.chosun.com/rss/www_section_rss.xml';
     }
     _fontSize = _sharedPreferences.getInt('fontSize');
-    if(_fontSize == null || _fontSize == 0) {
+    if (_fontSize == null || _fontSize == 0) {
       _fontSize = 24;
     }
     try {
@@ -86,7 +89,7 @@ class RSSReaderState extends State<RSSReader> {
   void initState() {
     super.initState();
     _refreshKey = GlobalKey<RefreshIndicatorState>();
-    updateTitle(widget.title);
+    updateTitle(_title);
     load();
   }
 
@@ -108,6 +111,9 @@ class RSSReaderState extends State<RSSReader> {
 
   @override
   Widget build(BuildContext context) {
+    _title = RSSLocalizations.of(context).title;
+    _loadingMessage = RSSLocalizations.of(context).loadingMessage;
+    _feedLoadErrorMessage = RSSLocalizations.of(context).feedLoadErrorMessage;
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
@@ -118,7 +124,11 @@ class RSSReaderState extends State<RSSReader> {
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'http://myhome.chosun.com/rss/www_section_rss.xml',
-                child: Text('조선일보'),
+                child: Text('조선일보 - 주요뉴스'),
+              ),
+              PopupMenuItem(
+                value: 'http://www.chosun.com/site/data/rss/rss.xml',
+                child: Text('조선일보 - 속보'),
               ),
               PopupMenuItem(
                 value: 'https://rss.joins.com/joins_homenews_list.xml',
@@ -131,6 +141,7 @@ class RSSReaderState extends State<RSSReader> {
               load(),
               _saveFeedUrl(_feedUrl),
             },
+            tooltip: RSSLocalizations.of(context).newspaper,
           ),
           PopupMenuButton(
             icon: Icon(Icons.format_size),
@@ -163,6 +174,7 @@ class RSSReaderState extends State<RSSReader> {
               updateFeed(_feed),
               _saveFontSize(_fontSize),
             },
+            tooltip: RSSLocalizations.of(context).fontSize,
           ),
         ],
       ),
@@ -173,6 +185,7 @@ class RSSReaderState extends State<RSSReader> {
         child: Icon(Icons.vertical_align_top),
         foregroundColor: Colors.white,
         mini: false,
+        tooltip: RSSLocalizations.of(context).backToTop,
       ),
       resizeToAvoidBottomPadding: false,
     );
